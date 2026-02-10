@@ -1,117 +1,123 @@
 
 import React from 'react';
-import { Feather, Plus, Search, Archive, Settings, Coffee, Heart, BarChart2 } from 'lucide-react';
+import { Feather, Plus, Search, Settings, Coffee, Heart, BarChart2, Menu } from 'lucide-react';
+import { UserSettings } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
   onNewClick: () => void;
+  onSettingsClick: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
+  userSettings: UserSettings;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ 
   children, 
-  onNewClick, 
+  onNewClick,
+  onSettingsClick,
   searchQuery, 
   setSearchQuery,
   activeFilter,
-  setActiveFilter
+  setActiveFilter,
+  userSettings
 }) => {
-  // Removed 'all' (Archive) from here as it's now handled by the top logo
   const navItems = [
+    { id: 'all', label: '全部记录', icon: Menu },
     { id: 'fav', label: '心动收藏', icon: Heart },
-    { id: 'stats', label: '心境统计', icon: BarChart2 },
-    { id: 'inspire', label: '灵感库', icon: Coffee },
+    { id: 'inspire', label: '灵感片段', icon: Coffee },
+    // Only show stats if AI is enabled and user hasn't hidden trends
+    ...(userSettings.isAiEnabled && userSettings.showMoodTrends ? [{ id: 'stats', label: '心境趋势', icon: BarChart2 }] : []),
   ];
 
   return (
-    <div className="flex h-screen bg-[#F8F9FA] overflow-hidden text-slate-800">
+    <div className="flex h-screen bg-[#FCFAF7] overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-20 md:w-64 border-r border-slate-200/50 flex flex-col items-center md:items-stretch py-8 bg-white/70 backdrop-blur-xl z-20">
-        {/* Logo acting as "All/Home" button */}
-        <button 
-          onClick={() => setActiveFilter('all')}
-          className="px-6 mb-12 flex items-center gap-3 group transition-transform active:scale-95"
-        >
-          <div className={`p-2.5 rounded-2xl shadow-lg transition-all duration-300 ${
-            activeFilter === 'all' 
-            ? 'bg-indigo-600 text-white shadow-indigo-200' 
-            : 'bg-white text-indigo-600 border border-slate-100 shadow-slate-100 group-hover:bg-slate-50'
-          }`}>
-            <Feather size={20} />
-          </div>
-          <h1 className={`hidden md:block font-bold text-xl tracking-tight font-serif italic transition-colors ${
-            activeFilter === 'all' ? 'text-slate-900' : 'text-slate-400'
-          }`}>Ethereal</h1>
-        </button>
+      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-60 border-r border-black/10 flex flex-col py-10 bg-white z-30">
+        <div className="px-6 mb-16">
+          <button 
+            onClick={() => setActiveFilter('all')}
+            className="flex items-center gap-3 hover:opacity-70"
+          >
+            <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded-sm shrink-0">
+              <Feather size={16} />
+            </div>
+            <h1 className="hidden md:block font-serif font-bold text-lg tracking-widest uppercase">Ethereal</h1>
+          </button>
+        </div>
 
-        <nav className="flex-1 px-4 space-y-3">
+        <nav className="flex-1 space-y-1">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveFilter(item.id)}
-              className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-medium transition-all duration-300 ${
+              className={`w-full flex items-center gap-4 px-6 py-3 text-sm ${
                 activeFilter === item.id 
-                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200' 
-                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                ? 'bg-black text-white font-medium' 
+                : 'text-zinc-400 hover:text-black hover:bg-zinc-50'
               }`}
             >
-              <item.icon size={20} />
-              <span className="hidden md:block text-sm">{item.label}</span>
+              <item.icon size={18} />
+              <span className="hidden md:block tracking-tight">{item.label}</span>
             </button>
           ))}
-          
-          <div className="pt-4 mt-4 border-t border-slate-100 hidden md:block">
-            <button className="w-full flex items-center gap-4 px-4 py-3 text-slate-300 hover:text-slate-500 transition-colors">
-              <Settings size={18} />
-              <span className="text-sm">偏好设置</span>
-            </button>
-          </div>
         </nav>
 
-        <div className="px-4 mt-auto">
+        <div className="px-4 mt-auto space-y-4">
           <button
             onClick={onNewClick}
-            className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white py-4 px-3 rounded-2xl shadow-2xl shadow-slate-200 transition-all hover:scale-[1.05] active:scale-95 group"
+            className="w-full flex items-center justify-center gap-2 bg-black text-white py-4 rounded-sm hover:bg-zinc-800 active:scale-[0.98]"
           >
-            <Plus size={22} className="group-hover:rotate-90 transition-transform" />
-            <span className="hidden md:block font-bold">记录当下</span>
+            <Plus size={20} />
+            <span className="hidden md:block font-bold text-xs uppercase tracking-widest">记录当下</span>
+          </button>
+          
+          <button 
+            onClick={onSettingsClick}
+            className="w-full flex items-center gap-4 px-6 py-3 text-sm text-zinc-400 hover:text-black hover:bg-zinc-50 rounded-sm"
+          >
+            <Settings size={18} />
+            <span className="hidden md:block tracking-tight">偏好设置</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-        {/* Top Header */}
-        <header className="h-24 flex items-center justify-between px-8 bg-white/40 backdrop-blur-md border-b border-slate-100 z-10">
-          <div className="flex-1 max-w-xl relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-            <input
-              type="text"
-              placeholder="搜索思绪、关键词或情绪..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-100/60 border-none focus:ring-2 focus:ring-indigo-100 rounded-2xl py-3.5 pl-12 pr-4 text-sm transition-all outline-none"
-            />
+      <main className="flex-1 ml-16 md:ml-60 flex flex-col h-full relative overflow-hidden bg-[#FCFAF7]">
+        <header className="sticky top-0 h-20 flex items-center justify-between px-10 border-b border-black/5 bg-white/70 backdrop-blur-md z-20 shrink-0">
+          <div className="flex-1 max-lg relative group">
+            {/* 仅在非趋势页面显示搜索框 */}
+            {activeFilter !== 'stats' && (
+              <>
+                <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-black" size={16} />
+                <input
+                  type="text"
+                  placeholder="SEARCH THOUGHTS..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent border-none focus:ring-0 py-2 pl-8 text-xs tracking-widest uppercase outline-none placeholder:text-zinc-300"
+                />
+              </>
+            )}
           </div>
           
-          <div className="ml-8 flex items-center gap-5">
-             <div className="hidden sm:flex flex-col items-end">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Today</span>
-                <span className="text-sm font-bold text-slate-700">{new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })}</span>
+          <div className="flex items-center gap-6">
+             <div className="text-right hidden sm:block">
+                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.2em]">{new Date().toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}</p>
+                <p className="text-xs font-serif font-bold italic">{userSettings.userName}</p>
              </div>
-             <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 p-[1px] shadow-lg shadow-indigo-100 cursor-pointer hover:rotate-3 transition-transform">
-                <div className="h-full w-full rounded-[calc(0.75rem-1px)] overflow-hidden bg-white">
-                  <img src="https://picsum.photos/seed/ethereal/120/120" alt="Profile" className="object-cover w-full h-full" />
-                </div>
-             </div>
+             <button 
+               onClick={onSettingsClick}
+               className="h-10 w-10 border border-black p-0.5 rounded-sm hover:rotate-3 overflow-hidden transition-transform"
+             >
+                <img src={userSettings.avatarUrl} alt="User" className="w-full h-full object-cover" />
+             </button>
           </div>
         </header>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-8 md:px-12 md:py-10">
+        <div className="flex-1 overflow-y-auto">
           {children}
         </div>
       </main>

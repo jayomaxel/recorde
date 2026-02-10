@@ -1,55 +1,71 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult } from "../types";
+import { storage } from "./storage";
 
-// Fixed: Correctly initialize GoogleGenAI with named apiKey parameter
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAIConfig = () => {
+  const settings = storage.getSettings();
+  const apiKey = settings.apiKey || process.env.API_KEY || '';
+  const baseUrl = settings.apiBaseUrl || undefined;
+  const model = settings.customModel || "gemini-3-flash-preview";
+  return { apiKey, baseUrl, model, settings };
+};
 
 const ANALYSIS_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    summary: {
-      type: Type.STRING,
-      description: "A very concise one-sentence summary of the thought.",
-    },
-    tags: {
-      type: Type.ARRAY,
-      items: { type: Type.STRING },
-      description: "Up to 3 relevant tags or keywords.",
-    },
-    wisdom: {
-      type: Type.STRING,
-      description: "A brief, gentle, philosophical perspective or follow-up question based on the content.",
-    },
-    mood: {
-      type: Type.STRING,
-      description: "The emotional tone of the thought (e.g., Calm, Anxious, Inspired, Reflective).",
-    }
+    mood: { type: Type.STRING, description: "情绪词: Calm, Happy, Anxious, Inspired, Reflective" },
   },
-  required: ["summary", "tags", "wisdom", "mood"],
+  required: ["mood"],
+};
+
+export const testApiConnection = async (config?: { apiKey?: string, customModel?: string, apiBaseUrl?: string }): Promise<{success: boolean, message?: string}> => {
+  const settings = storage.getSettings();
+  const apiKey = config?.apiKey || settings.apiKey || process.env.API_KEY;
+  const model = config?.customModel || settings.customModel || "gemini-3-flash-preview";
+  const baseUrl = config?.apiBaseUrl || settings.apiBaseUrl || undefined;
+  
+  if (!apiKey) {
+    return { success: false, message: "请在设置中输入 API 密钥。" };
+  }
+  
+  try {
+    // Pass baseUrl for proxy support
+    const ai = new GoogleGenAI({ apiKey, baseUrl } as any);
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: "ping",
+    });
+    
+    return response.text ? { success: true } : { success: false, message: "接口未返回预期内容" };
+  } catch (error: any) {
+    console.error("Test error:", error);
+    return { 
+      success: false, 
+      message: error.message || "请求失败，请检查密钥、代理地址或模型 ID。" 
+    };
+  }
 };
 
 export const analyzeThought = async (content: string): Promise<AIAnalysisResult | null> => {
-  if (!content.trim()) return null;
+  const { apiKey, baseUrl, model, settings } = getAIConfig();
+  if (!settings.isAiEnabled || !apiKey || !content.trim()) return null;
 
   try {
+    const ai = new GoogleGenAI({ apiKey, baseUrl } as any);
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `分析以下思绪并提供见解: "${content}"`,
+      model: model,
+      contents: `分析以下思绪内容的情绪并返回 JSON: "${content}"`,
       config: {
         responseMimeType: "application/json",
         responseSchema: ANALYSIS_SCHEMA,
-        systemInstruction: "你是一个温柔且富有洞察力的个人助理。你的目标是帮助用户整理思绪，提供简短且富有哲理的反馈，并自动提取关键词。",
+        systemInstruction: "你是一个情绪分析专家。请仅分析提供的内容属于哪种情绪（Calm, Happy, Anxious, Inspired, Reflective）。",
       },
     });
 
-    // Fixed: Accessed .text property directly (not a method) as per guidelines
-    if (response.text) {
-      return JSON.parse(response.text.trim());
-    }
-    return null;
+    return response.text ? JSON.parse(response.text.trim()) : null;
   } catch (error) {
-    console.error("Gemini analysis failed:", error);
+    console.error("AI Analysis failed:", error);
     return null;
   }
 };

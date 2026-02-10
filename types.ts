@@ -11,8 +11,20 @@ export interface Thought {
 }
 
 export interface AIAnalysisResult {
-  summary: string;
-  tags: string[];
-  wisdom: string;
   mood: string;
+}
+
+export interface UserSettings {
+  userId: string;
+  userName: string;
+  email?: string;
+  password?: string;
+  avatarUrl: string;
+  isInitialized: boolean;
+  isAiEnabled: boolean;
+  aiPersonality: 'philosophical' | 'poetic' | 'concise';
+  showMoodTrends: boolean;
+  apiKey?: string;
+  apiBaseUrl?: string;
+  customModel?: string;
 }
