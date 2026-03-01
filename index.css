@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FCFAF7;
+  --foreground: #1A1A1A;
+}
+
+body {
+  font-family: 'Inter', 'Noto Serif SC', serif;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 2px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1A1A1A;
+}
+
+::selection {
+  background: #1A1A1A;
+  color: #FCFAF7;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-8px);
+  }
+
+  75% {
+    transform: translateX(8px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.2s ease-in-out 0s 2;
+}

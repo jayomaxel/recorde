@@ -5,10 +5,10 @@ import { Lock, ArrowLeft } from 'lucide-react';
 
 interface PrivacyLockProps {
   correctPin: string;
-  onUnlocked: () => void;
+  onUnlock: () => void;
 }
 
-export const PrivacyLock: React.FC<PrivacyLockProps> = ({ correctPin, onUnlocked }) => {
+export const PrivacyLock: React.FC<PrivacyLockProps> = ({ correctPin, onUnlock }) => {
   const [input, setInput] = useState('');
   const [error, setError] = useState(false);
 
@@ -18,7 +18,7 @@ export const PrivacyLock: React.FC<PrivacyLockProps> = ({ correctPin, onUnlocked
       setInput(newInput);
       if (newInput.length === 4) {
         if (newInput === correctPin) {
-          onUnlocked();
+          onUnlock();
         } else {
           setError(true);
           setTimeout(() => {
@@ -48,9 +48,9 @@ export const PrivacyLock: React.FC<PrivacyLockProps> = ({ correctPin, onUnlocked
         {/* Pin Display */}
         <div className={`flex gap-6 ${error ? 'animate-shake' : ''}`}>
           {[0, 1, 2, 3].map((i) => (
-            <div 
-              key={i} 
-              className={`w-3 h-3 rounded-full border border-black transition-all duration-300 ${input.length > i ? 'bg-black scale-110' : 'bg-transparent'}`} 
+            <div
+              key={i}
+              className={`w-3 h-3 rounded-full border border-black transition-all duration-300 ${input.length > i ? 'bg-black scale-110' : 'bg-transparent'}`}
             />
           ))}
         </div>
@@ -81,7 +81,7 @@ export const PrivacyLock: React.FC<PrivacyLockProps> = ({ correctPin, onUnlocked
           </button>
         </div>
       </div>
-      
+
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }

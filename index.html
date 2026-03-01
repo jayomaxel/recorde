@@ -1,51 +1,45 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ethereal Notes</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', 'Noto Serif SC', serif;
-            background-color: #FCFAF7; /* Warm paper color */
-            color: #1A1A1A;
-        }
-        .mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        ::-webkit-scrollbar {
-            width: 2px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1A1A1A;
-        }
-        ::selection {
-            background: #1A1A1A;
-            color: #FCFAF7;
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.39.0",
-    "jspdf": "https://esm.sh/jspdf@^2.5.1"
-  }
-}
-</script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+    <script>
+        // 开发者自动初始化脚本：本地环境且未设置账号时自动创建管理员账号
+        (function () {
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const SETTINGS_KEY = 'ethereal_settings_v2';
+            if (isLocal && !localStorage.getItem(SETTINGS_KEY)) {
+                const adminSettings = {
+                    userId: 'admin',
+                    userName: '管理员',
+                    email: 'admin@ethereal.local',
+                    password: '', // 留空则不触发隐私锁屏
+                    avatarUrl: 'https://picsum.photos/seed/admin/200/200',
+                    isInitialized: true,
+                    isAiEnabled: true,
+                    aiPersonality: 'concise',
+                    showMoodTrends: true,
+                    apiKey: '',
+                    apiBaseUrl: '',
+                    customModel: 'gemini-1.5-flash'
+                };
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(adminSettings));
+                console.log('%c[Ethereal Dev] 已自动为您跳过注册并初始化管理员账号', 'color: #10b981; font-weight: bold;');
+            }
+        })();
+    </script>
 </head>
+
 <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { X, Loader2, ArrowRight } from 'lucide-react';
-import { Thought } from '../types';
-import { analyzeThought } from '../services/gemini';
-import { storage } from '../services/storage';
+import { Thought } from '../../types';
+import { analyzeThought } from '../../services/gemini';
+import { storage } from '../../services/storage';
 
 interface EditorProps {
   thought?: Thought;
@@ -21,26 +21,26 @@ export const Editor: React.FC<EditorProps> = ({ thought, onSave, onClose }) => {
 
   const handleSave = async () => {
     if (!content.trim() || isAnalyzing) return;
-    
+
     let aiResult = null;
-    if (settings.isAiEnabled) {
+    if (settings.isAiEnabled && !selectedMood) {
       setIsAnalyzing(true);
       aiResult = await analyzeThought(content);
       setIsAnalyzing(false);
     }
-    
-    onSave(content, aiResult);
+
+    onSave(content, aiResult || (selectedMood ? { mood: selectedMood } : null));
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
       <div className="w-full max-w-3xl bg-white shadow-2xl flex flex-col h-full md:h-[70vh] overflow-hidden">
-        
+
         <div className="flex-1 flex flex-col p-10 md:p-16">
           <div className="flex justify-between items-center mb-12">
             <div className="flex items-center gap-4">
-               <span className="mono text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Thought / Composition</span>
-               <div className="h-[1px] w-8 bg-zinc-200" />
+              <span className="mono text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Thought / Composition</span>
+              <div className="h-[1px] w-8 bg-zinc-200" />
             </div>
             <button onClick={onClose} className="text-zinc-400 hover:text-black">
               <X size={20} strokeWidth={3} />
@@ -63,11 +63,10 @@ export const Editor: React.FC<EditorProps> = ({ thought, onSave, onClose }) => {
                   <button
                     key={m}
                     onClick={() => setSelectedMood(m)}
-                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border ${
-                      selectedMood === m 
-                      ? 'bg-black text-white border-black' 
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest border ${selectedMood === m
+                      ? 'bg-black text-white border-black'
                       : 'bg-white text-zinc-300 border-zinc-100 hover:border-zinc-300 hover:text-zinc-600'
-                    }`}
+                      }`}
                   >
                     {m}
                   </button>

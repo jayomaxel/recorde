@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Camera, User, AtSign, ArrowRight, Feather, Upload, RotateCcw, Mail, Lock } from 'lucide-react';
-import { UserSettings } from '../types';
+import { UserSettings } from '../../types';
 
 interface OnboardingModalProps {
   onComplete: (data: Partial<UserSettings>) => void;
@@ -19,9 +19,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
 
   // 采用更严谨的邮箱正则，确保域名结构完整且顶级域名合法
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-  
-  const isFormValid = 
-    formData.userName.trim().length > 0 && 
+
+  const isFormValid =
+    formData.userName.trim().length > 0 &&
     formData.userId.trim().length > 0 &&
     emailRegex.test(formData.email) &&
     formData.password.length >= 6;
@@ -66,7 +66,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4">
               <div className="relative group">
-                <div 
+                <div
                   className="w-20 h-20 border border-black p-1 rounded-sm overflow-hidden bg-white cursor-pointer group-hover:opacity-80 transition-opacity"
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -75,19 +75,19 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                     <Upload size={16} className="text-white" />
                   </div>
                 </div>
-                
-                <input 
-                  type="file" 
+
+                <input
+                  type="file"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
-                  className="hidden" 
+                  className="hidden"
                   accept="image/*"
                 />
 
                 <div className="absolute -bottom-2 -right-2 flex gap-1">
-                  <button 
+                  <button
                     type="button"
-                    onClick={() => setFormData({...formData, avatarUrl: `https://picsum.photos/seed/${Math.random()}/200/200`})}
+                    onClick={() => setFormData({ ...formData, avatarUrl: `https://picsum.photos/seed/${Math.random()}/200/200` })}
                     className="bg-white border border-black text-black p-1.5 rounded-sm hover:bg-black hover:text-white transition-colors"
                   >
                     <RotateCcw size={10} />
@@ -102,11 +102,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 <label className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-400">
                   <User size={10} /> 笔名 / Name
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={formData.userName}
-                  onChange={(e) => setFormData({...formData, userName: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
                   className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 text-xs font-serif focus:ring-0 focus:border-black outline-none"
                   placeholder="你在思绪海中的称呼..."
                 />
@@ -116,11 +116,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 <label className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-400">
                   <AtSign size={10} /> 账号 / ID
                 </label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   required
                   value={formData.userId}
-                  onChange={(e) => setFormData({...formData, userId: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')})}
+                  onChange={(e) => setFormData({ ...formData, userId: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
                   className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 text-xs mono focus:ring-0 focus:border-black outline-none"
                   placeholder="unique_identifier"
                 />
@@ -130,16 +130,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 <label className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-400">
                   <Mail size={10} /> 邮箱 / Email
                 </label>
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 text-xs font-serif focus:ring-0 focus:border-black outline-none"
                   placeholder="your@email.com"
                 />
                 {!emailRegex.test(formData.email) && formData.email.length > 0 && (
-                   <p className="text-[8px] text-rose-400 font-serif italic">请输入合法的邮箱格式（如 example@domain.com）</p>
+                  <p className="text-[8px] text-rose-400 font-serif italic">请输入合法的邮箱格式（如 example@domain.com）</p>
                 )}
               </div>
 
@@ -147,12 +147,12 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 <label className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-400">
                   <Lock size={10} /> 密码 / Password
                 </label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   required
                   minLength={6}
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 text-xs mono focus:ring-0 focus:border-black outline-none"
                 />
                 <p className="text-[8px] text-zinc-300 font-serif italic">密码至少包含 6 位字符。</p>

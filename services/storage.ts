@@ -27,22 +27,6 @@ export const storage = {
   saveThoughts: (thoughts: Thought[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
   },
-  addThought: (thought: Thought) => {
-    const thoughts = storage.getThoughts();
-    storage.saveThoughts([thought, ...thoughts]);
-  },
-  updateThought: (updatedThought: Thought) => {
-    const thoughts = storage.getThoughts();
-    storage.saveThoughts(thoughts.map(t => t.id === updatedThought.id ? updatedThought : t));
-  },
-  deleteThought: (id: string) => {
-    const thoughts = storage.getThoughts();
-    storage.saveThoughts(thoughts.filter(t => t.id !== id));
-  },
-  toggleFavorite: (id: string) => {
-    const thoughts = storage.getThoughts();
-    storage.saveThoughts(thoughts.map(t => t.id === id ? { ...t, isFavorite: !t.isFavorite } : t));
-  },
   
   getSettings: (): UserSettings => {
     const data = localStorage.getItem(SETTINGS_KEY);
@@ -51,5 +35,56 @@ export const storage = {
   },
   saveSettings: (settings: UserSettings) => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  },
+
+  // Helper methods for App.tsx
+  saveThought: (content: string, aiResult: any): Thought => {
+    const thoughts = storage.getThoughts();
+    const newThought: Thought = {
+      id: Date.now().toString(),
+      content,
+      createdAt: new Date().toISOString(),
+      mood: aiResult?.mood || '',
+      tags: aiResult?.tags || [],
+      isFavorite: false
+    };
+    storage.saveThoughts([newThought, ...thoughts]);
+    return newThought;
+  },
+
+  updateThought: (id: string, content: string, aiResult: any): Thought => {
+    const thoughts = storage.getThoughts();
+    const thought = thoughts.find(t => t.id === id);
+    if (!thought) throw new Error('Thought not found');
+    
+    const updated: Thought = {
+      ...thought,
+      content,
+      mood: aiResult?.mood || thought.mood,
+      tags: aiResult?.tags || thought.tags,
+      updatedAt: new Date().toISOString()
+    };
+    
+    storage.saveThoughts(thoughts.map(t => t.id === id ? updated : t));
+    return updated;
+  },
+
+  deleteThought: (id: string) => {
+    const thoughts = storage.getThoughts();
+    storage.saveThoughts(thoughts.filter(t => t.id !== id));
+  },
+
+  toggleFavorite: (id: string): Thought => {
+    const thoughts = storage.getThoughts();
+    let updatedThought: Thought | undefined;
+    const newThoughts = thoughts.map(t => {
+      if (t.id === id) {
+        updatedThought = { ...t, isFavorite: !t.isFavorite };
+        return updatedThought;
+      }
+      return t;
+    });
+    storage.saveThoughts(newThoughts);
+    return updatedThought!;
   }
 };
