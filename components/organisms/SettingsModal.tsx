@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { X, User, Cpu, ShieldCheck, Loader2, Database, ToggleLeft, ToggleRight, Box, Camera, Download, Trash2, Mail, Lock, FileText, Key, Link, Eye, EyeOff, Edit3, Check, AlertCircle } from 'lucide-react';
+import { X, User, Cpu, ShieldCheck, Loader2, Database, ToggleLeft, ToggleRight, Box, Camera, Download, Trash2, Mail, Lock, FileText, Key, Link, Eye, EyeOff, Edit3, Check, AlertCircle, LogOut } from 'lucide-react';
 import { UserSettings } from '../../types';
 import { testApiConnection } from '../../services/gemini';
 import { storage } from '../../services/storage';
@@ -10,9 +10,10 @@ interface SettingsModalProps {
   settings: UserSettings;
   onSave: (settings: UserSettings) => void;
   onClose: () => void;
+  onLogout: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'engine' | 'data'>('profile');
   const [formData, setFormData] = useState<UserSettings>(settings);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
@@ -214,6 +215,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                       className="w-full flex items-center justify-center gap-3 py-3 border border-black/10 hover:border-black rounded-sm transition-all group bg-white"
                     >
                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] group-hover:scale-105 transition-transform">修改访问密码</span>
+                    </button>
+                    
+                    <button
+                      onClick={onLogout}
+                      className="w-full flex items-center justify-center gap-3 py-3 border border-rose-100 text-rose-500 hover:bg-rose-50 rounded-sm transition-all group mt-4"
+                    >
+                      <LogOut size={14} className="group-hover:translate-x-1 transition-transform" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]">退出当前账户</span>
                     </button>
                   </div>
                 </div>

@@ -201,6 +201,10 @@ const App: React.FC = () => {
           settings={userSettings}
           onSave={handleUpdateSettings}
           onClose={() => setIsSettingsOpen(false)}
+          onLogout={() => {
+            setIsLocked(true);
+            setIsSettingsOpen(false);
+          }}
         />
       )}
     </DashboardTemplate>
