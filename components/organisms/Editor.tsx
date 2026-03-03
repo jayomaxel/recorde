@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import { X, Loader2, ArrowRight } from 'lucide-react';
-import { Thought } from '../../types';
+import { AIAnalysisResult, Thought } from '../../types';
 import { analyzeThought } from '../../services/gemini';
 import { storage } from '../../services/storage';
 
 interface EditorProps {
   thought?: Thought;
-  onSave: (content: string, aiData: any) => void;
+  onSave: (content: string, aiData: AIAnalysisResult | null) => void;
   onClose: () => void;
 }
 
@@ -42,13 +42,20 @@ export const Editor: React.FC<EditorProps> = ({ thought, onSave, onClose }) => {
               <span className="mono text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Thought / Composition</span>
               <div className="h-[1px] w-8 bg-zinc-200" />
             </div>
-            <button onClick={onClose} className="text-zinc-400 hover:text-black">
+            <button
+              onClick={onClose}
+              aria-label="关闭编辑器"
+              title="关闭编辑器"
+              className="text-zinc-400 hover:text-black"
+            >
               <X size={20} strokeWidth={3} />
             </button>
           </div>
 
           <textarea
             autoFocus
+            id="thought-content"
+            name="thought_content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="开始记录你的思绪..."

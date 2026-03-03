@@ -2,9 +2,10 @@
 import React, { useState, useRef } from 'react';
 import { Camera, User, AtSign, ArrowRight, Feather, Upload, RotateCcw, Mail, Lock } from 'lucide-react';
 import { UserSettings } from '../../types';
+import { storage } from '../../services/storage';
 
 interface OnboardingModalProps {
-  onComplete: (data: Partial<UserSettings>) => void;
+  onComplete: (data: Partial<UserSettings>, runtimePin?: string) => void;
 }
 
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) => {
@@ -16,15 +17,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
     password: '',
     avatarUrl: `https://picsum.photos/seed/${Math.random()}/200/200`
   });
+  const [ackRisk, setAckRisk] = useState(false);
 
   // 采用更严谨的邮箱正则，确保域名结构完整且顶级域名合法
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  const isPinValid = /^\d{4}$/.test(formData.password);
 
   const isFormValid =
     formData.userName.trim().length > 0 &&
     formData.userId.trim().length > 0 &&
     emailRegex.test(formData.email) &&
-    formData.password.length >= 6;
+    isPinValid &&
+    ackRisk;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,10 +48,15 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isFormValid) {
+      const passwordHash = storage.hashPassword(formData.password);
       onComplete({
-        ...formData,
+        userId: formData.userId,
+        userName: formData.userName,
+        email: formData.email,
+        avatarUrl: formData.avatarUrl,
+        passwordHash,
         isInitialized: true
-      });
+      }, formData.password);
     }
   };
 
@@ -78,6 +87,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
 
                 <input
                   type="file"
+                  id="onboarding-avatar-file"
+                  name="avatar_file"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                   className="hidden"
@@ -87,6 +98,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 <div className="absolute -bottom-2 -right-2 flex gap-1">
                   <button
                     type="button"
+                    aria-label="随机更换头像"
+                    title="随机更换头像"
                     onClick={() => setFormData({ ...formData, avatarUrl: `https://picsum.photos/seed/${Math.random()}/200/200` })}
                     className="bg-white border border-black text-black p-1.5 rounded-sm hover:bg-black hover:text-white transition-colors"
                   >
@@ -104,6 +117,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 </label>
                 <input
                   type="text"
+                  id="onboarding-user-name"
+                  name="user_name"
                   required
                   value={formData.userName}
                   onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
@@ -118,6 +133,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 </label>
                 <input
                   type="text"
+                  id="onboarding-user-id"
+                  name="user_id"
                   required
                   value={formData.userId}
                   onChange={(e) => setFormData({ ...formData, userId: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
@@ -132,6 +149,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
                 </label>
                 <input
                   type="email"
+                  id="onboarding-email"
+                  name="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -145,20 +164,40 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
 
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest text-zinc-400">
-                  <Lock size={10} /> 密码 / Password
+                  <Lock size={10} /> 安全 PIN
                 </label>
                 <input
                   type="password"
+                  id="onboarding-pin"
+                  name="pin"
                   required
-                  minLength={6}
+                  inputMode="numeric"
+                  maxLength={4}
+                  pattern="\d{4}"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                   className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 text-xs mono focus:ring-0 focus:border-black outline-none"
+                  placeholder="4 位数字"
                 />
-                <p className="text-[8px] text-zinc-300 font-serif italic">密码至少包含 6 位字符。</p>
+                <p className="text-[8px] text-zinc-300 font-serif italic">请输入 4 位数字 PIN，用于解锁隐私界面。</p>
+                <p className="text-[9px] text-rose-500 font-bold">警告：忘记 PIN 将无法恢复加密数据。</p>
               </div>
             </div>
           </div>
+
+          <label className="flex items-start gap-2 text-[10px] text-zinc-500">
+            <input
+              type="checkbox"
+              id="onboarding-risk-ack"
+              name="risk_acknowledged"
+              checked={ackRisk}
+              onChange={(e) => setAckRisk(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span className="leading-relaxed">
+              我已知晓：本应用不提供找回密码服务，遗忘 PIN 可能导致数据永久不可恢复。
+            </span>
+          </label>
 
           <button
             type="submit"

@@ -25,11 +25,11 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [Ethereal] Starting dev server...
-echo [INFO] Please open http://localhost:3000 in your browser.
+echo [INFO] Please open http://localhost:3002 in your browser.
 echo.
 
 :: Try to open browser, but don't fail if it doesn't work
-start "" "http://localhost:3000"
+start "" "http://localhost:3002"
 
 :: Start Vite
 call npm run dev

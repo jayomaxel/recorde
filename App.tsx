@@ -1,25 +1,33 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Menu, Heart, Coffee, BarChart2, Plus } from 'lucide-react';
+import React, { Suspense, lazy, useState, useEffect, useMemo } from 'react';
+import { Menu, Heart, Coffee, BarChart2, Plus, Feather } from 'lucide-react';
 
 // Organisms
 import { ThoughtCard } from './components/organisms/ThoughtCard';
 import { Editor } from './components/organisms/Editor';
-import { SettingsModal } from './components/organisms/SettingsModal';
 import { OnboardingModal } from './components/organisms/OnboardingModal';
 import { PrivacyLock } from './components/organisms/PrivacyLock';
-import { RandomExplorer } from './components/organisms/RandomExplorer';
 import { Sidebar } from './components/organisms/Sidebar';
 import { Header } from './components/organisms/Header';
-import { MoodAnalytics } from './components/organisms/MoodAnalytics';
 
 // Templates
 import { DashboardTemplate } from './components/templates/DashboardTemplate';
 
 // Services & Types
 import { storage } from './services/storage';
-import { Thought, UserSettings } from './types';
-import { Feather, ArrowDown } from 'lucide-react';
+import { AIAnalysisResult, Thought, UserSettings } from './types';
+
+const SettingsModal = lazy(() =>
+  import('./components/organisms/SettingsModal').then((m) => ({ default: m.SettingsModal }))
+);
+
+const RandomExplorer = lazy(() =>
+  import('./components/organisms/RandomExplorer').then((m) => ({ default: m.RandomExplorer }))
+);
+
+const MoodAnalytics = lazy(() =>
+  import('./components/organisms/MoodAnalytics').then((m) => ({ default: m.MoodAnalytics }))
+);
 
 const App: React.FC = () => {
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -56,7 +64,7 @@ const App: React.FC = () => {
     return result;
   }, [thoughts, activeFilter, searchQuery]);
 
-  const handleSaveThought = (content: string, aiResult: any) => {
+  const handleSaveThought = (content: string, aiResult: AIAnalysisResult | null) => {
     if (editingThought) {
       const updated = storage.updateThought(editingThought.id, content, aiResult);
       setThoughts(prev => prev.map(t => t.id === updated.id ? updated : t));
@@ -83,14 +91,31 @@ const App: React.FC = () => {
     setIsEditorOpen(true);
   };
 
-  const handleUpdateSettings = (newSettings: UserSettings) => {
-    storage.saveSettings(newSettings);
-    setUserSettings(newSettings);
-    setIsSettingsOpen(false);
+  const handleUpdateSettings = (newSettings: UserSettings, runtimePin?: string) => {
+    try {
+      storage.saveSettings(newSettings, runtimePin);
+      if (runtimePin) storage.setSessionPassword(runtimePin);
+      setUserSettings(storage.getSettings());
+      setThoughts(storage.getThoughts());
+      if (runtimePin) setIsLocked(false);
+      setIsSettingsOpen(false);
+    } catch (error: any) {
+      alert(error?.message || '保存配置失败，请先重新解锁后重试。');
+    }
   };
 
-  if (isLocked && userSettings.password) {
-    return <PrivacyLock onUnlock={() => setIsLocked(false)} correctPin={userSettings.password} />;
+  if (isLocked && userSettings.passwordHash) {
+    return (
+      <PrivacyLock
+        passwordHash={userSettings.passwordHash}
+        onUnlock={(pin) => {
+          if (!storage.setSessionPassword(pin)) return;
+          setIsLocked(false);
+          setThoughts(storage.getThoughts());
+          setUserSettings(storage.getSettings());
+        }}
+      />
+    );
   }
 
   if (!userSettings.isInitialized) {
@@ -118,14 +143,18 @@ const App: React.FC = () => {
     >
       {/* RandomExplorer needs full height — render outside the padded wrapper */}
       {activeFilter === 'random' ? (
-        <RandomExplorer
-          thoughts={thoughts}
-          onDelete={handleDelete}
-          onToggleFavorite={handleToggleFavorite}
-          onEdit={handleEdit}
-        />
+        <Suspense fallback={<div className="p-8 text-zinc-400">Loading...</div>}>
+          <RandomExplorer
+            thoughts={thoughts}
+            onDelete={handleDelete}
+            onToggleFavorite={handleToggleFavorite}
+            onEdit={handleEdit}
+          />
+        </Suspense>
       ) : activeFilter === 'stats' ? (
-        <MoodAnalytics thoughts={thoughts} />
+        <Suspense fallback={<div className="p-8 text-zinc-400">Loading...</div>}>
+          <MoodAnalytics thoughts={thoughts} />
+        </Suspense>
       ) : (
         <div className="px-8 md:px-12 flex flex-col min-h-full">
           <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
@@ -137,6 +166,8 @@ const App: React.FC = () => {
               </h2>
               <button
                 onClick={() => setIsEditorOpen(true)}
+                aria-label="新建思绪"
+                title="新建思绪"
                 className="w-12 h-12 flex items-center justify-center border border-black hover:bg-black hover:text-white transition-all rounded-full shrink-0 mb-1"
               >
                 <Plus size={24} />
@@ -176,7 +207,7 @@ const App: React.FC = () => {
                 <span>Ethereal Notes v2.0</span>
               </div>
               <div className="flex items-center gap-4">
-                <span>Encrypted Local Storage</span>
+                <span>Local Storage Only</span>
                 <div className="w-1 h-1 rounded-full bg-zinc-200" />
                 <span>AI Enhanced</span>
               </div>
@@ -197,15 +228,18 @@ const App: React.FC = () => {
       )}
 
       {isSettingsOpen && (
-        <SettingsModal
-          settings={userSettings}
-          onSave={handleUpdateSettings}
-          onClose={() => setIsSettingsOpen(false)}
-          onLogout={() => {
-            setIsLocked(true);
-            setIsSettingsOpen(false);
-          }}
-        />
+        <Suspense fallback={<div className="fixed inset-0 z-[100] bg-black/20" />}>
+          <SettingsModal
+            settings={userSettings}
+            onSave={handleUpdateSettings}
+            onClose={() => setIsSettingsOpen(false)}
+            onLogout={() => {
+              storage.clearSensitiveCache();
+              setIsLocked(true);
+              setIsSettingsOpen(false);
+            }}
+          />
+        </Suspense>
       )}
     </DashboardTemplate>
   );

@@ -4,11 +4,10 @@ import { X, User, Cpu, ShieldCheck, Loader2, Database, ToggleLeft, ToggleRight, 
 import { UserSettings } from '../../types';
 import { testApiConnection } from '../../services/gemini';
 import { storage } from '../../services/storage';
-import { jsPDF } from 'jspdf';
 
 interface SettingsModalProps {
   settings: UserSettings;
-  onSave: (settings: UserSettings) => void;
+  onSave: (settings: UserSettings, runtimePin?: string) => void;
   onClose: () => void;
   onLogout: () => void;
 }
@@ -23,12 +22,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({ old: '', new: '', confirm: '' });
   const [passwordError, setPasswordError] = useState('');
+  const [pendingNewPin, setPendingNewPin] = useState<string | undefined>(undefined);
+  const [ackRisk, setAckRisk] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
-    onSave(formData);
-    onClose();
+    onSave(formData, pendingNewPin);
   };
 
   const handleTest = async () => {
@@ -61,23 +61,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
   };
 
   const handleChangePassword = () => {
-    if (passwordData.old !== formData.password) {
+    if (!storage.verifyPassword(passwordData.old, formData.passwordHash)) {
       setPasswordError('原密码输入错误');
       return;
     }
-    if (passwordData.new.length < 6) {
-      setPasswordError('新密码至少需要 6 位');
+    if (!/^\d{4}$/.test(passwordData.new)) {
+      setPasswordError('新密码必须是 4 位数字 PIN');
       return;
     }
     if (passwordData.new !== passwordData.confirm) {
       setPasswordError('两次输入的新密码不一致');
       return;
     }
+    if (!ackRisk) {
+      setPasswordError('请先勾选风险确认。');
+      return;
+    }
 
-    setFormData({ ...formData, password: passwordData.new });
+    setFormData({ ...formData, passwordHash: storage.hashPassword(passwordData.new) });
+    setPendingNewPin(passwordData.new);
     setShowPasswordModal(false);
     setPasswordData({ old: '', new: '', confirm: '' });
     setPasswordError('');
+    setAckRisk(false);
     alert('密码修改成功，点击“保存配置”生效');
   };
 
@@ -93,8 +99,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const thoughts = storage.getThoughts();
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     let y = 20;
 
@@ -129,7 +136,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
             <span className="mono text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Thought / Preference</span>
             <h2 className="text-xl font-serif font-bold italic tracking-tight">偏好设置</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-sm">
+          <button
+            onClick={onClose}
+            aria-label="关闭设置"
+            title="关闭设置"
+            className="p-2 hover:bg-zinc-100 rounded-sm"
+          >
             <X size={20} />
           </button>
         </div>
@@ -145,6 +157,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
+                aria-label={`切换到${tab.label}`}
+                title={`切换到${tab.label}`}
                 className={`w-full flex items-center gap-3 px-4 md:px-8 py-4 text-[10px] font-bold uppercase tracking-widest transition-colors ${activeTab === tab.id ? 'text-black bg-zinc-50 border-r-2 border-black' : 'text-zinc-300 hover:text-zinc-500'}`}
               >
                 <tab.icon size={16} />
@@ -162,8 +176,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                     <div className="w-24 h-24 border border-black p-1 rounded-sm overflow-hidden bg-white">
                       <img src={formData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     </div>
-                    <button onClick={() => fileInputRef.current?.click()} className="absolute -bottom-1 -right-1 p-1.5 bg-black text-white rounded-sm hover:scale-110 transition-transform"><Camera size={12} /></button>
-                    <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      aria-label="上传头像"
+                      title="上传头像"
+                      className="absolute -bottom-1 -right-1 p-1.5 bg-black text-white rounded-sm hover:scale-110 transition-transform"
+                    >
+                      <Camera size={12} />
+                    </button>
+                    <input
+                      type="file"
+                      id="settings-avatar-file"
+                      name="avatar_file"
+                      ref={fileInputRef}
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      accept="image/*"
+                    />
                   </div>
 
                   <div className="text-center space-y-1">
@@ -181,18 +210,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                           <input
                             autoFocus
                             type="text"
+                            id="settings-user-name"
+                            name="user_name"
                             value={formData.userName}
                             onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
                             onBlur={() => setIsEditingName(false)}
                             onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
                             className="flex-1 bg-transparent text-sm font-serif outline-none"
                           />
-                          <button onClick={() => setIsEditingName(false)} className="text-emerald-500"><Check size={14} /></button>
+                          <button
+                            onClick={() => setIsEditingName(false)}
+                            aria-label="确认昵称"
+                            title="确认昵称"
+                            className="text-emerald-500"
+                          >
+                            <Check size={14} />
+                          </button>
                         </div>
                       ) : (
                         <>
                           <span className="text-sm font-serif text-zinc-800">{formData.userName}</span>
-                          <button onClick={() => setIsEditingName(true)} className="text-zinc-300 hover:text-black transition-colors">
+                          <button
+                            onClick={() => setIsEditingName(true)}
+                            aria-label="编辑昵称"
+                            title="编辑昵称"
+                            className="text-zinc-300 hover:text-black transition-colors"
+                          >
                             <Edit3 size={14} />
                           </button>
                         </>
@@ -236,7 +279,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                     <h4 className="text-xs font-bold uppercase tracking-widest">开启 AI 情绪分析</h4>
                     <p className="text-[10px] text-zinc-400 mt-1 font-serif italic">仅用于生成心境趋势图谱。</p>
                   </div>
-                  <button onClick={() => setFormData({ ...formData, isAiEnabled: !formData.isAiEnabled })} className={`transition-all ${formData.isAiEnabled ? 'text-black' : 'text-zinc-200'}`}>
+                  <button
+                    onClick={() => setFormData({ ...formData, isAiEnabled: !formData.isAiEnabled })}
+                    aria-label={formData.isAiEnabled ? '关闭 AI 情绪分析' : '开启 AI 情绪分析'}
+                    title={formData.isAiEnabled ? '关闭 AI 情绪分析' : '开启 AI 情绪分析'}
+                    className={`transition-all ${formData.isAiEnabled ? 'text-black' : 'text-zinc-200'}`}
+                  >
                     {formData.isAiEnabled ? <ToggleRight size={36} /> : <ToggleLeft size={36} />}
                   </button>
                 </div>
@@ -250,12 +298,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                       <div className="relative">
                         <input
                           type={showKey ? "text" : "password"}
+                          id="settings-api-key"
+                          name="api_key"
                           value={formData.apiKey || ''}
                           onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                           className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 pr-12 text-sm mono outline-none focus:border-black"
                           placeholder="粘贴您的 API Key (如 Gemini, DeepSeek, OpenAI...)"
                         />
-                        <button onClick={() => setShowKey(!showKey)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-black transition-colors">
+                        <button
+                          onClick={() => setShowKey(!showKey)}
+                          aria-label={showKey ? '隐藏 API Key' : '显示 API Key'}
+                          title={showKey ? '隐藏 API Key' : '显示 API Key'}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-black transition-colors"
+                        >
                           {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       </div>
@@ -267,6 +322,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                       </label>
                       <input
                         type="text"
+                        id="settings-api-base-url"
+                        name="api_base_url"
                         value={formData.apiBaseUrl || ''}
                         onChange={(e) => setFormData({ ...formData, apiBaseUrl: e.target.value })}
                         className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 text-sm mono outline-none focus:border-black"
@@ -280,6 +337,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                       </label>
                       <input
                         type="text"
+                        id="settings-custom-model"
+                        name="custom_model"
                         value={formData.customModel}
                         onChange={(e) => setFormData({ ...formData, customModel: e.target.value })}
                         className="w-full bg-white border border-black/10 rounded-sm py-3 px-4 text-sm mono outline-none focus:border-black"
@@ -354,7 +413,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
               <div className="text-center space-y-2">
                 <Lock size={32} className="mx-auto text-black" />
                 <h3 className="font-serif text-xl font-bold italic">修改安全密码</h3>
-                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">请输入凭据以继续</p>
+                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">新密码需为 4 位数字 PIN</p>
               </div>
 
               <div className="space-y-4">
@@ -362,6 +421,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                   <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">原密码</label>
                   <input
                     type="password"
+                    id="settings-old-pin"
+                    name="old_pin"
                     value={passwordData.old}
                     onChange={(e) => setPasswordData({ ...passwordData, old: e.target.value })}
                     className="w-full border-b border-black/10 py-2 text-sm mono outline-none focus:border-black bg-transparent"
@@ -371,8 +432,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                   <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">新密码</label>
                   <input
                     type="password"
+                    id="settings-new-pin"
+                    name="new_pin"
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="\d{4}"
                     value={passwordData.new}
-                    onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
+                    onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                     className="w-full border-b border-black/10 py-2 text-sm mono outline-none focus:border-black bg-transparent"
                   />
                 </div>
@@ -380,11 +446,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                   <label className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">确认新密码</label>
                   <input
                     type="password"
+                    id="settings-confirm-pin"
+                    name="confirm_pin"
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="\d{4}"
                     value={passwordData.confirm}
-                    onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                     className="w-full border-b border-black/10 py-2 text-sm mono outline-none focus:border-black bg-transparent"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] text-rose-500 font-bold">警告：若忘记 PIN，本地加密数据将无法恢复。</p>
+                <label className="flex items-start gap-2 text-[10px] text-zinc-500">
+                  <input
+                    type="checkbox"
+                    id="settings-risk-ack"
+                    name="risk_acknowledged"
+                    checked={ackRisk}
+                    onChange={(e) => setAckRisk(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>我已知晓：系统不提供找回密码功能。</span>
+                </label>
               </div>
 
               {passwordError && (
@@ -402,7 +488,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                   确认修改
                 </button>
                 <button
-                  onClick={() => { setShowPasswordModal(false); setPasswordError(''); setPasswordData({ old: '', new: '', confirm: '' }); }}
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordError('');
+                    setPasswordData({ old: '', new: '', confirm: '' });
+                    setAckRisk(false);
+                  }}
                   className="w-full py-3 border border-black/5 text-zinc-400 text-[10px] font-bold uppercase tracking-widest hover:text-black hover:border-black"
                 >
                   取消操作

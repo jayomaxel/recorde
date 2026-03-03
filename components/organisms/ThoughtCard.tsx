@@ -44,12 +44,16 @@ export const ThoughtCard: React.FC<ThoughtCardProps> = ({ thought, onDelete, onT
         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(thought.id); }}
+            aria-label={thought.isFavorite ? '取消收藏' : '收藏'}
+            title={thought.isFavorite ? '取消收藏' : '收藏'}
             className={`p-1 transition-colors ${thought.isFavorite ? 'text-rose-500' : 'text-zinc-300 hover:text-black'}`}
           >
             <Heart size={14} fill={thought.isFavorite ? 'currentColor' : 'none'} strokeWidth={2.5} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(thought.id); }}
+            aria-label="删除思绪"
+            title="删除思绪"
             className="p-1 text-zinc-300 hover:text-black transition-colors"
           >
             <Trash2 size={14} strokeWidth={2.5} />

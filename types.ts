@@ -2,7 +2,8 @@
 export interface Thought {
   id: string;
   content: string;
-  createdAt: number;
+  createdAt: string;
+  updatedAt?: string;
   tags: string[];
   aiInsight?: string;
   summary?: string;
@@ -12,13 +13,14 @@ export interface Thought {
 
 export interface AIAnalysisResult {
   mood: string;
+  tags?: string[];
 }
 
 export interface UserSettings {
   userId: string;
   userName: string;
   email?: string;
-  password?: string;
+  passwordHash?: string;
   avatarUrl: string;
   isInitialized: boolean;
   isAiEnabled: boolean;

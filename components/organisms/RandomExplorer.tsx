@@ -124,12 +124,16 @@ export const RandomExplorer: React.FC<RandomExplorerProps> = ({ thoughts, onDele
                                         <div className="flex gap-4">
                                             <button
                                                 onClick={e => { e.stopPropagation(); onToggleFavorite(thought.id); }}
+                                                aria-label={thought.isFavorite ? '取消收藏' : '收藏'}
+                                                title={thought.isFavorite ? '取消收藏' : '收藏'}
                                                 className={`transition-colors ${thought.isFavorite ? 'text-rose-500' : 'text-zinc-200 hover:text-rose-400'}`}
                                             >
                                                 <Heart size={15} fill={thought.isFavorite ? 'currentColor' : 'none'} strokeWidth={2.5} />
                                             </button>
                                             <button
                                                 onClick={e => { e.stopPropagation(); onDelete(thought.id); }}
+                                                aria-label="删除当前思绪"
+                                                title="删除当前思绪"
                                                 className="text-zinc-200 hover:text-black transition-colors"
                                             >
                                                 <Trash2 size={15} strokeWidth={2.5} />
@@ -149,12 +153,16 @@ export const RandomExplorer: React.FC<RandomExplorerProps> = ({ thoughts, onDele
             {/* ── prev / next buttons ───────────────────────────────── */}
             <button
                 onClick={handlePrev}
+                aria-label="上一条"
+                title="上一条"
                 className="absolute left-8 top-1/2 -translate-y-1/2 z-50 p-5 bg-white rounded-full border border-black/5 shadow-xl text-zinc-400 hover:text-black hover:scale-110 active:scale-95 transition-all"
             >
                 <ChevronLeft size={26} strokeWidth={1.5} />
             </button>
             <button
                 onClick={handleNext}
+                aria-label="下一条"
+                title="下一条"
                 className="absolute right-8 top-1/2 -translate-y-1/2 z-50 p-5 bg-white rounded-full border border-black/5 shadow-xl text-zinc-400 hover:text-black hover:scale-110 active:scale-95 transition-all"
             >
                 <ChevronRight size={26} strokeWidth={1.5} />
